@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Loading...</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+
+<script src="js/supabase.js"></script>
+
+<script>
+  async function cekLogin() {
+    const supabase = window.supabaseClient;
+
+    const { data } = await supabase.auth.getUser();
+
+    if (data.user) {
+      window.location.href = "pages/dashboard.html";
+    } else {
+      window.location.href = "login.html";
+    }
+  }
+
+  cekLogin();
+</script>
+
+</body>
+</html>

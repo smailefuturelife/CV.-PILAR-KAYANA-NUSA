@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Bootstrap biar sama tema -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body style="background:#f8fafc;">
+
+<div class="container-fluid p-4">
+
+  <h4 class="mb-4">📦 Kelola Produk</h4>
+
+  <div class="row" id="list"></div>
+
+</div>
+
+<script src="../js/supabase.js"></script>
+
+<script>
+async function getProducts() {
+  const supabase = window.supabaseClient;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("id", { ascending: false });
+
+  if (error) {
+    document.getElementById("list").innerHTML = error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    document.getElementById("list").innerHTML = "Belum ada produk";
+    return;
+  }
+
+  let html = "";
+
+  data.forEach(item => {
+    html += `
+      <div class="col-md-3 mb-3">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+
+            <small class="text-muted">${item.kode_barang}</small>
+            <h5 class="mt-2">${item.nama_produk}</h5>
+            <p class="text-success fw-bold">Rp ${item.harga}</p>
+
+            <button class="btn btn-danger btn-sm w-100"
+              onclick="hapusProduk(${item.id})">
+              Hapus
+            </button>
+
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+async function hapusProduk(id) {
+  const supabase = window.supabaseClient;
+
+  if (!confirm("Yakin hapus produk?")) return;
+
+  await supabase.from("products").delete().eq("id", id);
+  getProducts();
+}
+
+getProducts();
+</script>
+
+</body>
+</html>

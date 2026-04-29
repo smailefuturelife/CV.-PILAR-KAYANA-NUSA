@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body style="background:#f8fafc;">
+
+<div class="container-fluid p-4">
+
+  <h4 class="mb-4">➕ Tambah Produk</h4>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <div class="mb-3">
+        <label>Nama Produk</label>
+        <input id="nama" class="form-control">
+      </div>
+
+      <div class="mb-3">
+        <label>Kode Barang</label>
+        <input id="kode" class="form-control">
+      </div>
+
+      <div class="mb-3">
+        <label>Harga</label>
+        <input id="harga" type="number" class="form-control">
+      </div>
+
+      <div class="mb-3">
+        <label>Kategori</label>
+        <input id="kategori" class="form-control">
+      </div>
+
+      <div class="mb-3">
+        <label>Link Gambar</label>
+        <input id="gambar" class="form-control">
+      </div>
+
+      <button onclick="tambahProduk()" class="btn btn-primary w-100">
+        Simpan Produk
+      </button>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/supabase.js"></script>
+
+<script>
+async function tambahProduk() {
+  const supabase = window.supabaseClient;
+
+  const nama = document.getElementById("nama").value;
+  const kode = document.getElementById("kode").value;
+  const harga = document.getElementById("harga").value;
+  const kategori = document.getElementById("kategori").value;
+  const gambar = document.getElementById("gambar").value;
+
+  if (!nama || !kode || !harga) {
+    alert("Isi data dulu!");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("products")
+    .insert([
+      {
+        nama_produk: nama,
+        kode_barang: kode,
+        harga: Number(harga),
+        kategori: kategori,
+        gambar: gambar
+      }
+    ]);
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Produk berhasil ditambahkan");
+
+    // reset form
+    document.getElementById("nama").value = "";
+    document.getElementById("kode").value = "";
+    document.getElementById("harga").value = "";
+    document.getElementById("kategori").value = "";
+    document.getElementById("gambar").value = "";
+
+    // OPTIONAL: balik ke produk
+    parent.loadPage('produk.html');
+  }
+}
+</script>
+
+</body>
+</html>
