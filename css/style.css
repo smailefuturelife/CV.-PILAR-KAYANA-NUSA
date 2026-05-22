@@ -1,0 +1,65 @@
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #f4f4f4;
+}
+
+.navbar {
+  background: #2f6fed;
+  color: white;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.burger {
+  font-size: 24px;
+  cursor: pointer;
+  margin-right: 15px;
+}
+
+.sidebar {
+  position: fixed;
+  left: -250px;
+  top: 0;
+  width: 250px;
+  height: 100%;
+  background: #2f6fed;
+  color: white;
+  padding-top: 60px;
+  transition: 0.3s;
+}
+
+.sidebar a {
+  display: block;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.sidebar a:hover {
+  background: #1e4fbf;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.content {
+  padding: 20px;
+  text-align: center;
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+  background: #2f6fed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+
+input {
+  padding: 10px;
+  margin: 5px;
+  width: 80%;
+}

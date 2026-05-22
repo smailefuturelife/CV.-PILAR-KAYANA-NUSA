@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body style="background:#f8fafc;">
+
+<div class="container-fluid p-4">
+
+  <h4 class="mb-4">👤 Manajemen Users</h4>
+
+  <!-- FORM TAMBAH USER -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+      <div class="row g-2">
+
+        <!-- ✅ TAMBAHAN NAMA -->
+        <div class="col-md-3">
+          <input id="nama" class="form-control" placeholder="Nama">
+        </div>
+
+        <div class="col-md-3">
+          <input id="email" class="form-control" placeholder="Email">
+        </div>
+
+        <div class="col-md-2">
+          <input id="password" class="form-control" placeholder="Password">
+        </div>
+
+        <div class="col-md-2">
+          <input id="role" class="form-control" value="sales">
+        </div>
+
+        <div class="col-md-2">
+          <button onclick="addUser()" class="btn btn-primary w-100">
+            Tambah
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LIST USERS -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th width="250">Aksi</th>
+          </tr>
+        </thead>
+
+        <tbody id="list"></tbody>
+
+      </table>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- FILE SUPABASE KAMU -->
+<script src="../js/supabase.js"></script>
+
+<script>
+// ================= GET USERS =================
+async function getUsers() {
+  const supabase = window.supabaseClient;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("*");
+
+  if (error) {
+    document.getElementById("list").innerHTML =
+      `<tr><td colspan="4">${error.message}</td></tr>`;
+    return;
+  }
+
+  let html = "";
+
+  data.forEach(user => {
+    html += `
+      <tr>
+        <td>${user.nama}</td>
+        <td>${user.email}</td>
+        <td>${user.role}</td>
+        <td>
+
+          <button class="btn btn-warning btn-sm"
+            onclick="updateEmail('${user.id}')">
+            Edit Email
+          </button>
+
+          <button class="btn btn-info btn-sm"
+            onclick="updatePassword('${user.id}')">
+            Password
+          </button>
+
+          <button class="btn btn-danger btn-sm"
+            onclick="deleteUser('${user.id}')">
+            Hapus
+          </button>
+
+        </td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+// ================= TAMBAH USER =================
+async function addUser() {
+  const supabase = window.supabaseClient;
+
+  const nama = document.getElementById("nama").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const role = document.getElementById("role").value;
+
+  if (!nama || !email || !password) {
+    alert("Nama, email & password wajib!");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .insert([{ nama, email, password, role }]);
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("User berhasil ditambahkan");
+
+    document.getElementById("nama").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+    document.getElementById("role").value = "sales";
+
+    getUsers();
+  }
+}
+
+// ================= HAPUS =================
+async function deleteUser(id) {
+  const supabase = window.supabaseClient;
+
+  if (!confirm("Yakin hapus user?")) return;
+
+  await supabase
+    .from("users")
+    .delete()
+    .eq("id", id);
+
+  getUsers();
+}
+
+// ================= EDIT EMAIL =================
+async function updateEmail(id) {
+  const supabase = window.supabaseClient;
+
+  const newEmail = prompt("Masukkan email baru:");
+  if (!newEmail) return;
+
+  await supabase
+    .from("users")
+    .update({ email: newEmail })
+    .eq("id", id);
+
+  getUsers();
+}
+
+// ================= EDIT PASSWORD =================
+async function updatePassword(id) {
+  const supabase = window.supabaseClient;
+
+  const newPass = prompt("Masukkan password baru:");
+  if (!newPass) return;
+
+  await supabase
+    .from("users")
+    .update({ password: newPass })
+    .eq("id", id);
+
+  getUsers();
+}
+
+// LOAD DATA
+getUsers();
+</script>
+
+</body>
+</html>
