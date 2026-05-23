@@ -361,7 +361,6 @@ function detailOrder(id) {
 
 function downloadInvoice(id) {
   const item = semuaOrder.find((x) => x.id === id);
-
   if (!item) return;
 
   const subtotal = Number(item.subtotal || 0);
@@ -373,207 +372,312 @@ function downloadInvoice(id) {
   let produkRows = "";
 
   if (item.order_items?.length > 0) {
-    item.order_items.forEach((x, index) => {
+    item.order_items.forEach((x) => {
       const harga = Number(x.price || 0);
       const qty = Number(x.qty || 0);
       const totalProduk = harga * qty;
 
       produkRows += `
         <tr>
-          <td>${index + 1}</td>
           <td>${x.products?.nama_produk || "-"}</td>
+          <td>-</td>
           <td>${qty}</td>
+          <td>Pcs</td>
           <td>${formatRupiah(harga)}</td>
           <td>${formatRupiah(totalProduk)}</td>
         </tr>
       `;
     });
-  } else {
-    produkRows = `
-      <tr>
-        <td colspan="5" style="text-align:center;">Tidak ada produk</td>
-      </tr>
-    `;
   }
 
   const invoiceHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Invoice ${getOrderCode(item)}</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          padding: 30px;
-          color: #222;
-        }
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Invoice ${getOrderCode(item)}</title>
 
-        h2, h3 {
-          margin-bottom: 5px;
-        }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    color: #111;
+    padding: 35px;
+    background: white;
+  }
 
-        .header {
-          display: flex;
-          justify-content: space-between;
-          border-bottom: 2px solid #222;
-          padding-bottom: 15px;
-          margin-bottom: 20px;
-        }
+  .invoice {
+    max-width: 900px;
+    margin: auto;
+  }
 
-        .company {
-          font-size: 22px;
-          font-weight: bold;
-        }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
 
-        .muted {
-          color: #666;
-          font-size: 13px;
-        }
+  .logo-area {
+    font-size: 22px;
+    font-weight: bold;
+  }
 
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 12px;
-          margin-bottom: 20px;
-        }
+  .logo-area img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    margin-bottom: 5px;
+  }
 
-        th, td {
-          border: 1px solid #ddd;
-          padding: 8px;
-          font-size: 14px;
-        }
+  .invoice-title {
+    font-size: 32px;
+    font-weight: bold;
+    text-align: right;
+  }
 
-        th {
-          background: #f1f5f9;
-        }
+  .info-wrap {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 30px;
+    margin-top: 25px;
+  }
 
-        .total-box {
-          width: 45%;
-          margin-left: auto;
-        }
+  .info-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
 
-        .total {
-          font-size: 20px;
-          font-weight: bold;
-          color: #16a34a;
-        }
+  .info-text {
+    font-size: 14px;
+    line-height: 1.6;
+  }
 
-        .text-right {
-          text-align: right;
-        }
+  .right-info table {
+    width: 100%;
+    font-size: 14px;
+  }
 
-        @media print {
-          button {
-            display: none;
-          }
-        }
-      </style>
-    </head>
+  .right-info td {
+    padding: 4px 0;
+  }
 
-    <body>
-      <button onclick="window.print()" style="padding:10px 16px; margin-bottom:20px;">
-        Simpan / Download PDF
-      </button>
+  .right-info td:first-child {
+    font-weight: bold;
+    width: 120px;
+  }
 
-      <div class="header">
-        <div>
-          <div class="company">CV Pilar Kayana Nusa</div>
-          <div class="muted">Invoice Pesanan Customer</div>
-        </div>
+  table.product {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    font-size: 14px;
+  }
 
-        <div>
-          <h2>INVOICE</h2>
-          <div><b>${getOrderCode(item)}</b></div>
-        </div>
+  table.product th {
+    border-bottom: 2px solid #111;
+    border-top: 2px solid #111;
+    padding: 8px;
+    text-align: left;
+  }
+
+  table.product td {
+    border-bottom: 1px solid #ccc;
+    padding: 8px;
+  }
+
+  .summary {
+    width: 330px;
+    margin-left: auto;
+    margin-top: 15px;
+    font-size: 14px;
+  }
+
+  .summary table {
+    width: 100%;
+  }
+
+  .summary td {
+    padding: 5px 0;
+  }
+
+  .summary td:last-child {
+    text-align: right;
+    font-weight: bold;
+  }
+
+  .bank {
+    margin-top: 25px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .note {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .signature {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .company-footer {
+    margin-top: 40px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .print-btn {
+    padding: 10px 16px;
+    margin-bottom: 20px;
+    background: #111827;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  @media print {
+    .print-btn {
+      display: none;
+    }
+
+    body {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+
+<body>
+<button class="print-btn" onclick="window.print()">Download / Cetak PDF</button>
+
+<div class="invoice">
+
+  <div class="top">
+    <div class="logo-area">
+      <img src="../icon.png">
+      <div>CV Pilar Kayana Nusa</div>
+    </div>
+
+    <div class="invoice-title">
+      Invoice
+    </div>
+  </div>
+
+  <div class="info-wrap">
+    <div>
+      <div class="info-title">Kepada :</div>
+      <div class="info-text">
+        ${item.customer_name || "-"}<br>
+        ${item.phone || "-"}<br>
+        ${item.address || "-"}
       </div>
+    </div>
 
-      <h3>Data Order</h3>
+    <div class="right-info">
       <table>
         <tr>
-          <th>Kode Order</th>
-          <td>${getOrderCode(item)}</td>
+          <td>Nomor Invoice</td>
+          <td>: ${getOrderCode(item)}</td>
         </tr>
         <tr>
-          <th>Tanggal</th>
-          <td>${
+          <td>Tanggal beli</td>
+          <td>: ${
             item.created_at
-              ? new Date(item.created_at).toLocaleString("id-ID")
+              ? new Date(item.created_at).toLocaleDateString("id-ID")
               : "-"
           }</td>
         </tr>
         <tr>
-          <th>Status</th>
-          <td>${item.status || "-"}</td>
-        </tr>
-        <tr>
-          <th>Sales</th>
-          <td>${getSalesName(item)} (${getSalesCode(item)})</td>
-        </tr>
+  <td>Total</td>
+  <td>: ${formatRupiah(total)}</td>
+</tr>
+<tr>
+  <td>Status Order</td>
+  <td>: ${item.status || "-"}</td>
+</tr>
+<tr>
+  <td>Jatuh tempo</td>
+  <td>: -</td>
+</tr>
       </table>
+    </div>
+  </div>
 
-      <h3>Data Customer</h3>
-      <table>
-        <tr>
-          <th>Nama</th>
-          <td>${item.customer_name || "-"}</td>
-        </tr>
-        <tr>
-          <th>No HP</th>
-          <td>${item.phone || "-"}</td>
-        </tr>
-        <tr>
-          <th>Alamat</th>
-          <td>${item.address || "-"}</td>
-        </tr>
-        <tr>
-          <th>Pembayaran</th>
-          <td>${item.payment_method || "-"}</td>
-        </tr>
-      </table>
+  <table class="product">
+    <thead>
+      <tr>
+        <th>Deskripsi</th>
+        <th>Kategori</th>
+        <th>Qty</th>
+        <th>Satuan</th>
+        <th>Harga</th>
+        <th>Total Harga</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${produkRows}
+    </tbody>
+  </table>
 
-      <h3>Rincian Produk</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Produk</th>
-            <th>Qty</th>
-            <th>Harga</th>
-            <th>Total</th>
-          </tr>
-        </thead>
+  <div class="summary">
+    <table>
+      <tr>
+        <td>Subtotal</td>
+        <td>${formatRupiah(subtotal)}</td>
+      </tr>
+      <tr>
+        <td>Diskon ${diskonPersen || 0}%</td>
+        <td>-${formatRupiah(hemat)}</td>
+      </tr>
+      <tr>
+        <td>Total</td>
+        <td>${formatRupiah(total)}</td>
+      </tr>
+    </table>
+  </div>
 
-        <tbody>
-          ${produkRows}
-        </tbody>
-      </table>
+  <div class="bank">
+    <b>Pembayaran via Bank :</b><br><br>
+    <b>Pembayaran Hanya kepada :</b><br>
+    2480581388 / BCA Atas nama : Muhammad Mustaghfirin<br>
+    1010011557376 / MANDIRI Atas nama : Muhammad Mustaghfirin
+  </div>
 
-      <div class="total-box">
-        <table>
-          <tr>
-            <th>Subtotal</th>
-            <td class="text-right">${formatRupiah(subtotal)}</td>
-          </tr>
-          <tr>
-            <th>Diskon</th>
-            <td class="text-right">${diskonPersen || 0}%</td>
-          </tr>
-          <tr>
-            <th>Hemat</th>
-            <td class="text-right">-${formatRupiah(hemat)}</td>
-          </tr>
-          <tr>
-            <th>Total Bayar</th>
-            <td class="text-right total">${formatRupiah(total)}</td>
-          </tr>
-        </table>
-      </div>
-    </body>
-    </html>
+  <div class="note">
+    * Barang yang sudah dibeli tidak dapat dikembalikan<br>
+    * Pengaplikasian media tidak sesuai dengan ketentuan kami, diluar tanggung jawab kami<br>
+    * Garansi berlaku jika berat barang tidak sesuai dengan netto / bruto kami
+  </div>
+
+  <div class="signature">
+    <div>
+      Diterima oleh<br><br><br><br>
+      (_____________)
+    </div>
+
+    <div>
+      Hormat Kami<br><br><br><br>
+      (_____________)
+    </div>
+  </div>
+
+  <div class="company-footer">
+    <b>CV Pilar Kayana Nusa</b><br>
+    Tangerang, Indonesia<br>
+    Sales: ${getSalesName(item)} (${getSalesCode(item)})
+  </div>
+
+</div>
+</body>
+</html>
   `;
 
   const win = window.open("", "_blank");
-
   win.document.write(invoiceHtml);
   win.document.close();
 
