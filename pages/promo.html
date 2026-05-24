@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kelola Promo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+</head>
+
+<body style="background:#f1f5f9;">
+
+<div class="container-fluid p-4">
+
+  <div class="card border-0 shadow-sm" style="border-radius:20px; overflow:hidden;">
+
+    <div class="p-4 text-white" style="background:linear-gradient(135deg,#7c3aed,#9333ea);">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h3 class="fw-bold mb-1">🏷️ Kelola Promo</h3>
+          <p class="mb-0">Daftar promo produk aktif</p>
+        </div>
+
+        <button class="btn btn-light fw-bold" data-bs-toggle="modal" data-bs-target="#tambahPromoModal">
+          <i class="bi bi-plus-circle"></i> Tambah Promo
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>No</th>
+              <th>Produk</th>
+              <th>Gambar</th>
+              <th>Diskon</th>
+              <th>Min Belanja</th>
+              <th>Tanggal Mulai</th>
+              <th>Tanggal Selesai</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody id="promoTable">
+            <tr>
+              <td colspan="8" class="text-center">Memuat data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- MODAL TAMBAH PROMO -->
+<div class="modal fade" id="tambahPromoModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Tambah Promo Baru</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <form id="promoForm">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Pilih Produk</label>
+            <select id="product" class="form-select" required>
+              <option value="">-- Pilih Produk --</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Diskon (%)</label>
+            <input type="number" id="discount" class="form-control" min="1" max="100" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Minimal Pembelian</label>
+            <input type="number" id="min_purchase" class="form-control" min="0" value="0" required>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Tanggal Mulai</label>
+              <input type="date" id="start_date" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Tanggal Selesai</label>
+              <input type="date" id="end_date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Preview Produk</label>
+            <br>
+            <img id="preview" style="display:none; width:160px; height:160px; object-fit:cover; border-radius:12px;">
+          </div>
+
+        </form>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Batal
+        </button>
+
+        <button type="submit" form="promoForm" class="btn btn-primary">
+          Simpan Promo
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="../js/supabase.js"></script>
+<script src="../js/promo.js"></script>
+
+</body>
+</html>

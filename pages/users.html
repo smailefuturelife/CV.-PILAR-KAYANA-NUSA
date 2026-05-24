@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body style="background:#f8fafc;">
+
+<div class="container-fluid p-4">
+
+  <h4 class="mb-4">👤 Kelola User</h4>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+      <div class="row g-2">
+
+        <div class="col-md-2">
+          <input id="nama" class="form-control" placeholder="Nama">
+        </div>
+
+        <div class="col-md-2">
+          <input id="email" class="form-control" placeholder="Email Sales">
+        </div>
+
+        <div class="col-md-2">
+          <input id="password" class="form-control" placeholder="Password">
+        </div>
+
+        <div class="col-md-2">
+          <input id="wa" class="form-control" placeholder="No WhatsApp">
+        </div>
+
+        <div class="col-md-2">
+          <input id="role" class="form-control" value="sales">
+        </div>
+
+        <div class="col-md-2">
+          <button onclick="addUser()" class="btn btn-primary w-100">
+            Tambah
+          </button>
+        </div>
+
+      </div>
+
+      <small class="text-muted">
+        Contoh WhatsApp: 08123456789. Setelah user dibuat, WhatsApp otomatis terbuka.
+      </small>
+
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>WhatsApp</th>
+            <th>Role</th>
+            <th>User Code</th>
+            <th width="330">Aksi</th>
+          </tr>
+        </thead>
+
+        <tbody id="list"></tbody>
+      </table>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/supabase.js"></script>
+
+<script>
+async function getUsers() {
+  const supabase = window.supabaseClient;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .order("nama", { ascending: true });
+
+  if (error) {
+    document.getElementById("list").innerHTML =
+      `<tr><td colspan="7" class="text-danger text-center">${error.message}</td></tr>`;
+    return;
+  }
+
+  let html = "";
+
+  data.forEach(user => {
+    html += `
+      <tr>
+        <td>${user.nama || "-"}</td>
+        <td>${user.email || "-"}</td>
+        <td>${user.password || "-"}</td>
+        <td>${user.wa || "-"}</td>
+        <td>${user.role || "-"}</td>
+        <td>${user.user_code || "-"}</td>
+        <td>
+          <button class="btn btn-success btn-sm"
+            onclick="kirimWA('${escapeQuote(user.nama)}', '${escapeQuote(user.email)}', '${escapeQuote(user.password)}', '${escapeQuote(user.wa)}')">
+            Kirim WA
+          </button>
+
+          <button class="btn btn-warning btn-sm"
+            onclick="updateEmail('${user.id}')">
+            Edit Email
+          </button>
+
+          <button class="btn btn-info btn-sm"
+            onclick="updatePassword('${user.id}')">
+            Password
+          </button>
+
+          <button class="btn btn-danger btn-sm"
+            onclick="deleteUser('${user.id}')">
+            Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+function escapeQuote(value) {
+  return String(value || "").replace(/'/g, "\\'");
+}
+
+async function addUser() {
+  const supabase = window.supabaseClient;
+
+  const nama = document.getElementById("nama").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const wa = document.getElementById("wa").value.trim();
+  const role = document.getElementById("role").value.trim() || "sales";
+
+  if (!nama || !email || !password || !wa) {
+    alert("Nama, email, password, dan WhatsApp wajib diisi!");
+    return;
+  }
+
+  const prefix = role.toLowerCase() === "admin" ? "ADM" : "SLS";
+
+  const { data: kodeUsers, error: kodeError } = await supabase
+    .from("users")
+    .select("user_code")
+    .like("user_code", `${prefix}-%`);
+
+  if (kodeError) {
+    alert("Gagal membuat user code: " + kodeError.message);
+    return;
+  }
+
+  let nomorTerakhir = 0;
+
+  kodeUsers.forEach(item => {
+    if (item.user_code) {
+      const nomor = parseInt(item.user_code.replace(`${prefix}-`, ""));
+      if (!isNaN(nomor) && nomor > nomorTerakhir) {
+        nomorTerakhir = nomor;
+      }
+    }
+  });
+
+  const userCode = `${prefix}-${String(nomorTerakhir + 1).padStart(3, "0")}`;
+
+  const { error } = await supabase
+    .from("users")
+    .insert([
+      {
+        nama: nama,
+        email: email,
+        password: password,
+        wa: wa,
+        role: role,
+        user_code: userCode
+      }
+    ]);
+
+  if (error) {
+    alert("Gagal tambah user: " + error.message);
+    return;
+  }
+
+  alert("User berhasil ditambahkan\nUser Code: " + userCode);
+
+  kirimWA(nama, email, password, wa);
+
+  document.getElementById("nama").value = "";
+  document.getElementById("email").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("wa").value = "";
+  document.getElementById("role").value = "sales";
+
+  getUsers();
+}
+
+function kirimWA(nama, email, password, wa) {
+  if (!wa) {
+    alert("Nomor WhatsApp belum ada");
+    return;
+  }
+
+  let nomorWa = String(wa).replace(/\D/g, "");
+
+  if (nomorWa.startsWith("0")) {
+    nomorWa = "62" + nomorWa.substring(1);
+  }
+
+  if (!nomorWa.startsWith("62")) {
+    nomorWa = "62" + nomorWa;
+  }
+
+  const pesan =
+`Halo ${nama}, akun sales kamu sudah berhasil dibuat.
+
+Berikut data login aplikasi sales:
+
+Email:
+${email}
+
+Password:
+${password}
+
+Silakan login menggunakan email dan password di atas.
+
+Terima kasih.`;
+
+  const linkWa = `https://wa.me/${nomorWa}?text=${encodeURIComponent(pesan)}`;
+
+  window.open(linkWa, "_blank");
+}
+
+async function deleteUser(id) {
+  const supabase = window.supabaseClient;
+
+  if (!confirm("Yakin ingin menghapus user ini?")) return;
+
+  const { error } = await supabase
+    .from("users")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Gagal hapus user: " + error.message);
+    return;
+  }
+
+  alert("User berhasil dihapus");
+  getUsers();
+}
+
+async function updateEmail(id) {
+  const supabase = window.supabaseClient;
+
+  const newEmail = prompt("Masukkan email baru:");
+  if (!newEmail) return;
+
+  const { error } = await supabase
+    .from("users")
+    .update({ email: newEmail })
+    .eq("id", id);
+
+  if (error) {
+    alert("Gagal update email: " + error.message);
+    return;
+  }
+
+  alert("Email berhasil diupdate");
+  getUsers();
+}
+
+async function updatePassword(id) {
+  const supabase = window.supabaseClient;
+
+  const newPass = prompt("Masukkan password baru:");
+  if (!newPass) return;
+
+  const { error } = await supabase
+    .from("users")
+    .update({ password: newPass })
+    .eq("id", id);
+
+  if (error) {
+    alert("Gagal update password: " + error.message);
+    return;
+  }
+
+  alert("Password berhasil diupdate");
+  getUsers();
+}
+
+getUsers();
+</script>
+
+</body>
+</html>
