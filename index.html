@@ -15,7 +15,7 @@
     const { data } = await supabase.auth.getUser();
 
     if (data.user) {
-      window.location.href = "pages/dashboard.html";
+      window.location.href = "dashboard.html";
     } else {
       window.location.href = "login.html";
     }
