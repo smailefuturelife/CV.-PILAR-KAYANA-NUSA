@@ -11,6 +11,32 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("promoForm").addEventListener("submit", simpanPromo);
 });
 
+function ambilSemuaFoto(gambar) {
+  if (Array.isArray(gambar)) {
+    return gambar;
+  }
+
+  if (typeof gambar === "string") {
+    try {
+      const hasil = JSON.parse(gambar);
+      if (Array.isArray(hasil)) {
+        return hasil;
+      }
+
+      return [gambar];
+    } catch (e) {
+      return [gambar];
+    }
+  }
+
+  return [];
+}
+
+function ambilFotoUtama(gambar) {
+  const foto = ambilSemuaFoto(gambar);
+  return foto[0] || "";
+}
+
 async function loadProdukUntukPromo() {
   const client = window.supabaseClient;
   const productSelect = document.getElementById("product");
@@ -46,8 +72,10 @@ function tampilPreviewProduk() {
     return String(item.id) === String(productId);
   });
 
-  if (produk && produk.gambar) {
-    preview.src = produk.gambar;
+  const fotoUtama = produk ? ambilFotoUtama(produk.gambar) : "";
+
+  if (fotoUtama) {
+    preview.src = fotoUtama;
     preview.style.display = "block";
   } else {
     preview.src = "";
@@ -152,14 +180,18 @@ async function loadPromo() {
   tbody.innerHTML = "";
 
   data.forEach((item, index) => {
+    const fotoProduk = item.products
+      ? ambilFotoUtama(item.products.gambar)
+      : "";
+
     tbody.innerHTML += `
       <tr>
         <td>${index + 1}</td>
         <td>${item.products ? item.products.nama_produk : "-"}</td>
         <td>
           ${
-            item.products && item.products.gambar
-              ? `<img src="${item.products.gambar}" width="80" height="80" style="object-fit:cover;border-radius:12px;">`
+            fotoProduk
+              ? `<img src="${fotoProduk}" width="80" height="80" style="object-fit:cover;border-radius:12px;">`
               : "-"
           }
         </td>
