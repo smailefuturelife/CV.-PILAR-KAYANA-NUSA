@@ -1,15 +1,141 @@
 let semuaProduk = [];
 let tambahModal;
 let editModal;
+let previewModal;
+let fotoPreview = [];
+let indexPreview = 0;
+let produkPreviewId = null;
 
 document.addEventListener("DOMContentLoaded", function () {
   tambahModal = new bootstrap.Modal(document.getElementById("tambahModal"));
   editModal = new bootstrap.Modal(document.getElementById("editModal"));
+  previewModal = new bootstrap.Modal(document.getElementById("previewModal"));
+
   getProducts();
 });
 
+function ambilSemuaFoto(gambar) {
+  if (Array.isArray(gambar)) {
+    return gambar;
+  }
+
+  if (typeof gambar === "string") {
+    try {
+      const hasil = JSON.parse(gambar);
+      if (Array.isArray(hasil)) {
+        return hasil;
+      }
+      return [gambar];
+    } catch (e) {
+      return [gambar];
+    }
+  }
+
+  return [];
+}
+
+function ambilFotoUtama(gambar) {
+  const foto = ambilSemuaFoto(gambar);
+  return foto[0] || "";
+}
+
+function tampilkanPreview(index) {
+  if (fotoPreview.length === 0) return;
+
+  indexPreview = index;
+
+  if (indexPreview < 0) {
+    indexPreview = fotoPreview.length - 1;
+  }
+
+  if (indexPreview >= fotoPreview.length) {
+    indexPreview = 0;
+  }
+
+  document.getElementById("previewBesar").src = fotoPreview[indexPreview];
+
+  let thumbs = "";
+
+  fotoPreview.forEach(function (url, index) {
+    thumbs += `
+      <img
+        src="${url}"
+        onclick="tampilkanPreview(${index})"
+        style="
+          width:75px;
+          height:75px;
+          object-fit:cover;
+          border-radius:10px;
+          cursor:pointer;
+          border:3px solid ${index === indexPreview ? "#0d6efd" : "#ffffff"};
+        "
+      >
+    `;
+  });
+
+  document.getElementById("previewThumbs").innerHTML = thumbs;
+  document.getElementById("previewCounter").innerText =
+    `${indexPreview + 1} / ${fotoPreview.length}`;
+}
+
+function bukaPreviewProduk(id, indexAwal = 0) {
+  const produk = semuaProduk.find(function (item) {
+    return item.id === id;
+  });
+
+  if (!produk) return;
+
+  produkPreviewId = id;
+  fotoPreview = ambilSemuaFoto(produk.gambar);
+
+  if (fotoPreview.length === 0) {
+    alert("Produk ini belum punya gambar.");
+    return;
+  }
+
+  tampilkanPreview(indexAwal);
+  previewModal.show();
+}
+
+function geserPreview(arah) {
+  tampilkanPreview(indexPreview + arah);
+}
+
+async function uploadBanyakGambar(files) {
+  const client = window.supabaseClient;
+  let urls = [];
+
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) {
+      alert("File harus berupa gambar.");
+      return null;
+    }
+
+    const fileName = Date.now() + "-" + Math.random() + "-" + file.name;
+
+    const { error: uploadError } = await client
+      .storage
+      .from("produk-images")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      alert("Gagal upload gambar: " + uploadError.message);
+      return null;
+    }
+
+    const { data: publicData } = client
+      .storage
+      .from("produk-images")
+      .getPublicUrl(fileName);
+
+    urls.push(publicData.publicUrl);
+  }
+
+  return urls;
+}
+
 async function tambahProduk() {
-  const supabase = window.supabaseClient;
+  const client = window.supabaseClient;
 
   const nama = document.getElementById("nama").value.trim();
   const kode = document.getElementById("kode").value.trim();
@@ -17,38 +143,18 @@ async function tambahProduk() {
   const kategori = document.getElementById("kategori").value.trim();
   const stok = document.getElementById("stok").value;
   const deskripsi = document.getElementById("deskripsi").value.trim();
-  const file = document.getElementById("gambar").files[0];
+  const files = document.getElementById("gambar").files;
 
-  if (!nama || !kode || !harga || !kategori || !stok || !deskripsi || !file) {
-    alert("Isi semua data!");
+  if (!nama || !kode || !harga || !kategori || !stok || !deskripsi || files.length === 0) {
+    alert("Isi semua data dan pilih minimal 1 gambar!");
     return;
   }
 
-  if (file.type !== "image/jpeg") {
-    alert("Hanya file JPG!");
-    return;
-  }
+  const gambarUrls = await uploadBanyakGambar(files);
 
-  const fileName = Date.now() + "-" + file.name;
+  if (!gambarUrls) return;
 
-  const { error: uploadError } = await supabase
-    .storage
-    .from("produk-images")
-    .upload(fileName, file);
-
-  if (uploadError) {
-    alert(uploadError.message);
-    return;
-  }
-
-  const { data: publicData } = supabase
-    .storage
-    .from("produk-images")
-    .getPublicUrl(fileName);
-
-  const imageUrl = publicData.publicUrl;
-
-  const { error } = await supabase
+  const { error } = await client
     .from("products")
     .insert([
       {
@@ -58,7 +164,7 @@ async function tambahProduk() {
         kategori: kategori,
         stok: Number(stok),
         deskripsi: deskripsi,
-        gambar: imageUrl
+        gambar: gambarUrls
       }
     ]);
 
@@ -109,22 +215,35 @@ async function getProducts() {
   let html = "";
 
   data.forEach(function (item) {
+    const fotoUtama = ambilFotoUtama(item.gambar);
+    const jumlahFoto = ambilSemuaFoto(item.gambar).length;
+
     html += `
       <div class="col-md-3 mb-3">
         <div class="card shadow-sm h-100">
 
-          <img
-            src="${item.gambar || ''}"
-            class="card-img-top"
-            style="height:180px; object-fit:cover;"
-          >
+          <div style="position:relative;">
+            <img
+              src="${fotoUtama}"
+              onclick="bukaPreviewProduk(${item.id}, 0)"
+              class="card-img-top"
+              style="height:180px; object-fit:cover; cursor:pointer;"
+            >
+
+            <span
+              class="badge bg-dark"
+              style="position:absolute; right:10px; bottom:10px;"
+            >
+              ${jumlahFoto} Foto
+            </span>
+          </div>
 
           <div class="card-body">
 
-            <small class="text-muted">${item.kode_barang || '-'}</small>
+            <small class="text-muted">${item.kode_barang || "-"}</small>
 
             <h5 class="mt-2">
-              ${item.nama_produk || '-'}
+              ${item.nama_produk || "-"}
             </h5>
 
             <p class="text-muted mb-1">
@@ -171,6 +290,8 @@ function bukaEditProduk(id) {
     return;
   }
 
+  const fotoUtama = ambilFotoUtama(produk.gambar);
+
   document.getElementById("edit_id").value = produk.id;
   document.getElementById("edit_nama").value = produk.nama_produk || "";
   document.getElementById("edit_kode").value = produk.kode_barang || "";
@@ -179,7 +300,12 @@ function bukaEditProduk(id) {
   document.getElementById("edit_stok").value = produk.stok || "";
   document.getElementById("edit_deskripsi").value = produk.deskripsi || "";
   document.getElementById("edit_gambar").value = "";
-  document.getElementById("edit_preview").src = produk.gambar || "";
+  document.getElementById("edit_preview").src = fotoUtama;
+
+  document.getElementById("edit_preview").style.cursor = "pointer";
+  document.getElementById("edit_preview").onclick = function () {
+    bukaPreviewProduk(produk.id, 0);
+  };
 
   editModal.show();
 }
@@ -194,7 +320,7 @@ async function simpanEditProduk() {
   const kategori = document.getElementById("edit_kategori").value.trim();
   const stok = document.getElementById("edit_stok").value;
   const deskripsi = document.getElementById("edit_deskripsi").value.trim();
-  const file = document.getElementById("edit_gambar").files[0];
+  const files = document.getElementById("edit_gambar").files;
 
   if (!nama || !kode || !harga || !kategori || !stok || !deskripsi) {
     alert("Semua data wajib diisi.");
@@ -210,30 +336,12 @@ async function simpanEditProduk() {
     deskripsi: deskripsi
   };
 
-  if (file) {
-    if (file.type !== "image/jpeg") {
-      alert("Gambar harus JPG.");
-      return;
-    }
+  if (files.length > 0) {
+    const gambarUrls = await uploadBanyakGambar(files);
 
-    const fileName = Date.now() + "-" + file.name;
+    if (!gambarUrls) return;
 
-    const { error: uploadError } = await client
-      .storage
-      .from("produk-images")
-      .upload(fileName, file);
-
-    if (uploadError) {
-      alert("Gagal upload gambar: " + uploadError.message);
-      return;
-    }
-
-    const { data: publicData } = client
-      .storage
-      .from("produk-images")
-      .getPublicUrl(fileName);
-
-    updateData.gambar = publicData.publicUrl;
+    updateData.gambar = gambarUrls;
   }
 
   const { error } = await client
@@ -252,10 +360,101 @@ async function simpanEditProduk() {
   getProducts();
 }
 
+function jadikanFotoUtama() {
+  if (fotoPreview.length === 0) return;
+
+  const fotoDipilih = fotoPreview[indexPreview];
+
+  fotoPreview.splice(indexPreview, 1);
+  fotoPreview.unshift(fotoDipilih);
+
+  tampilkanPreview(0);
+}
+
+function geserUrutanFoto(arah) {
+  const indexBaru = indexPreview + arah;
+
+  if (indexBaru < 0 || indexBaru >= fotoPreview.length) return;
+
+  const sementara = fotoPreview[indexPreview];
+  fotoPreview[indexPreview] = fotoPreview[indexBaru];
+  fotoPreview[indexBaru] = sementara;
+
+  tampilkanPreview(indexBaru);
+}
+
+async function simpanUrutanFoto() {
+  const client = window.supabaseClient;
+
+  if (!produkPreviewId) {
+    alert("Produk tidak ditemukan.");
+    return;
+  }
+
+  const { error } = await client
+    .from("products")
+    .update({
+      gambar: fotoPreview
+    })
+    .eq("id", produkPreviewId);
+
+  if (error) {
+    alert("Gagal simpan urutan gambar: " + error.message);
+    return;
+  }
+
+  alert("Urutan gambar berhasil disimpan.");
+
+  previewModal.hide();
+  getProducts();
+}
+
+function ambilPathStorageDariUrl(url) {
+  if (!url) return null;
+
+  const marker = "/produk-images/";
+  const index = url.indexOf(marker);
+
+  if (index === -1) return null;
+
+  return decodeURIComponent(url.substring(index + marker.length));
+}
+
 async function hapusProduk(id) {
   const client = window.supabaseClient;
 
-  if (!confirm("Yakin hapus produk?")) return;
+  if (!confirm("Yakin hapus produk? Gambar di storage juga akan dihapus.")) return;
+
+  const produk = semuaProduk.find(function (item) {
+    return item.id === id;
+  });
+
+  if (!produk) {
+    alert("Produk tidak ditemukan.");
+    return;
+  }
+
+  const daftarFoto = ambilSemuaFoto(produk.gambar);
+
+  const daftarPath = daftarFoto
+    .map(function (url) {
+      return ambilPathStorageDariUrl(url);
+    })
+    .filter(function (path) {
+      return path !== null;
+    });
+
+  if (daftarPath.length > 0) {
+    const { error: storageError } = await client
+      .storage
+      .from("produk-images")
+      .remove(daftarPath);
+
+    if (storageError) {
+      alert("Gagal hapus gambar storage: " + storageError.message);
+      return;
+    }
+  }
 
   const { error } = await client
     .from("products")
@@ -267,6 +466,6 @@ async function hapusProduk(id) {
     return;
   }
 
-  alert("Produk berhasil dihapus.");
+  alert("Produk dan gambar berhasil dihapus.");
   getProducts();
 }
