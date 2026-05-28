@@ -1,471 +1,225 @@
-let semuaProduk = [];
-let tambahModal;
-let editModal;
-let previewModal;
-let fotoPreview = [];
-let indexPreview = 0;
-let produkPreviewId = null;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kelola Produk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-document.addEventListener("DOMContentLoaded", function () {
-  tambahModal = new bootstrap.Modal(document.getElementById("tambahModal"));
-  editModal = new bootstrap.Modal(document.getElementById("editModal"));
-  previewModal = new bootstrap.Modal(document.getElementById("previewModal"));
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
 
-  getProducts();
-});
+<body style="background:#f8fafc;">
 
-function ambilSemuaFoto(gambar) {
-  if (Array.isArray(gambar)) {
-    return gambar;
-  }
+<div class="container-fluid p-4">
 
-  if (typeof gambar === "string") {
-    try {
-      const hasil = JSON.parse(gambar);
-      if (Array.isArray(hasil)) {
-        return hasil;
-      }
-      return [gambar];
-    } catch (e) {
-      return [gambar];
-    }
-  }
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">📦 Kelola Produk</h4>
 
-  return [];
-}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahModal">
+      + Tambah Produk
+    </button>
+  </div>
 
-function ambilFotoUtama(gambar) {
-  const foto = ambilSemuaFoto(gambar);
-  return foto[0] || "";
-}
+  <div class="row" id="list"></div>
 
-function tampilkanPreview(index) {
-  if (fotoPreview.length === 0) return;
+</div>
 
-  indexPreview = index;
 
-  if (indexPreview < 0) {
-    indexPreview = fotoPreview.length - 1;
-  }
+<!-- MODAL TAMBAH PRODUK -->
+<div class="modal fade" id="tambahModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
 
-  if (indexPreview >= fotoPreview.length) {
-    indexPreview = 0;
-  }
-
-  document.getElementById("previewBesar").src = fotoPreview[indexPreview];
-
-  let thumbs = "";
-
-  fotoPreview.forEach(function (url, index) {
-    thumbs += `
-      <img
-        src="${url}"
-        onclick="tampilkanPreview(${index})"
-        style="
-          width:75px;
-          height:75px;
-          object-fit:cover;
-          border-radius:10px;
-          cursor:pointer;
-          border:3px solid ${index === indexPreview ? "#0d6efd" : "#ffffff"};
-        "
-      >
-    `;
-  });
-
-  document.getElementById("previewThumbs").innerHTML = thumbs;
-  document.getElementById("previewCounter").innerText =
-    `${indexPreview + 1} / ${fotoPreview.length}`;
-}
-
-function bukaPreviewProduk(id, indexAwal = 0) {
-  const produk = semuaProduk.find(function (item) {
-    return item.id === id;
-  });
-
-  if (!produk) return;
-
-  produkPreviewId = id;
-  fotoPreview = ambilSemuaFoto(produk.gambar);
-
-  if (fotoPreview.length === 0) {
-    alert("Produk ini belum punya gambar.");
-    return;
-  }
-
-  tampilkanPreview(indexAwal);
-  previewModal.show();
-}
-
-function geserPreview(arah) {
-  tampilkanPreview(indexPreview + arah);
-}
-
-async function uploadBanyakGambar(files) {
-  const client = window.supabaseClient;
-  let urls = [];
-
-  for (const file of files) {
-    if (!file.type.startsWith("image/")) {
-      alert("File harus berupa gambar.");
-      return null;
-    }
-
-    const fileName = Date.now() + "-" + Math.random() + "-" + file.name;
-
-    const { error: uploadError } = await client
-      .storage
-      .from("produk-images")
-      .upload(fileName, file);
-
-    if (uploadError) {
-      alert("Gagal upload gambar: " + uploadError.message);
-      return null;
-    }
-
-    const { data: publicData } = client
-      .storage
-      .from("produk-images")
-      .getPublicUrl(fileName);
-
-    urls.push(publicData.publicUrl);
-  }
-
-  return urls;
-}
-
-async function tambahProduk() {
-  const client = window.supabaseClient;
-
-  const nama = document.getElementById("nama").value.trim();
-  const kode = document.getElementById("kode").value.trim();
-  const harga = document.getElementById("harga").value;
-  const kategori = document.getElementById("kategori").value.trim();
-  const stok = document.getElementById("stok").value;
-  const deskripsi = document.getElementById("deskripsi").value.trim();
-  const files = document.getElementById("gambar").files;
-
-  if (!nama || !kode || !harga || !kategori || !stok || !deskripsi || files.length === 0) {
-    alert("Isi semua data dan pilih minimal 1 gambar!");
-    return;
-  }
-
-  const gambarUrls = await uploadBanyakGambar(files);
-
-  if (!gambarUrls) return;
-
-  const { error } = await client
-    .from("products")
-    .insert([
-      {
-        nama_produk: nama,
-        kode_barang: kode,
-        harga: Number(harga),
-        kategori: kategori,
-        stok: Number(stok),
-        deskripsi: deskripsi,
-        gambar: gambarUrls
-      }
-    ]);
-
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("Produk berhasil ditambahkan");
-
-    document.getElementById("nama").value = "";
-    document.getElementById("kode").value = "";
-    document.getElementById("harga").value = "";
-    document.getElementById("kategori").value = "";
-    document.getElementById("stok").value = "";
-    document.getElementById("deskripsi").value = "";
-    document.getElementById("gambar").value = "";
-
-    tambahModal.hide();
-    getProducts();
-  }
-}
-
-async function getProducts() {
-  const client = window.supabaseClient;
-  const list = document.getElementById("list");
-
-  if (!client) {
-    list.innerHTML = "Supabase belum terhubung.";
-    return;
-  }
-
-  const { data, error } = await client
-    .from("products")
-    .select("*")
-    .order("id", { ascending: false });
-
-  if (error) {
-    list.innerHTML = error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    list.innerHTML = "Belum ada produk";
-    return;
-  }
-
-  semuaProduk = data;
-
-  let html = "";
-
-  data.forEach(function (item) {
-    const fotoUtama = ambilFotoUtama(item.gambar);
-    const jumlahFoto = ambilSemuaFoto(item.gambar).length;
-
-    html += `
-      <div class="col-md-3 mb-3">
-        <div class="card shadow-sm h-100">
-
-          <div style="position:relative;">
-            <img
-              src="${fotoUtama}"
-              onclick="bukaPreviewProduk(${item.id}, 0)"
-              class="card-img-top"
-              style="height:180px; object-fit:cover; cursor:pointer;"
-            >
-
-            <span
-              class="badge bg-dark"
-              style="position:absolute; right:10px; bottom:10px;"
-            >
-              ${jumlahFoto} Foto
-            </span>
-          </div>
-
-          <div class="card-body">
-
-            <small class="text-muted">${item.kode_barang || "-"}</small>
-
-            <h5 class="mt-2">
-              ${item.nama_produk || "-"}
-            </h5>
-
-            <p class="text-muted mb-1">
-              Stok: ${item.stok || 0}
-            </p>
-
-            <p class="text-success fw-bold">
-              Rp ${Number(item.harga || 0).toLocaleString("id-ID")}
-            </p>
-
-            <div class="d-flex gap-2">
-              <button
-                class="btn btn-warning btn-sm w-50"
-                onclick="bukaEditProduk(${item.id})"
-              >
-                Ubah
-              </button>
-
-              <button
-                class="btn btn-danger btn-sm w-50"
-                onclick="hapusProduk(${item.id})"
-              >
-                Hapus
-              </button>
-            </div>
-
-          </div>
-
-        </div>
+      <div class="modal-header">
+        <h5 class="modal-title">Tambah Produk</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-    `;
-  });
 
-  list.innerHTML = html;
-}
+      <div class="modal-body">
 
-function bukaEditProduk(id) {
-  const produk = semuaProduk.find(function (item) {
-    return item.id === id;
-  });
+        <div class="mb-3">
+          <label class="form-label">Nama Produk</label>
+          <input id="nama" class="form-control">
+        </div>
 
-  if (!produk) {
-    alert("Produk tidak ditemukan.");
-    return;
-  }
+        <div class="mb-3">
+          <label class="form-label">Kode Barang</label>
+          <input id="kode" class="form-control">
+        </div>
 
-  const fotoUtama = ambilFotoUtama(produk.gambar);
+        <div class="mb-3">
+          <label class="form-label">Harga</label>
+          <input id="harga" type="number" class="form-control">
+        </div>
 
-  document.getElementById("edit_id").value = produk.id;
-  document.getElementById("edit_nama").value = produk.nama_produk || "";
-  document.getElementById("edit_kode").value = produk.kode_barang || "";
-  document.getElementById("edit_harga").value = produk.harga || "";
-  document.getElementById("edit_kategori").value = produk.kategori || "";
-  document.getElementById("edit_stok").value = produk.stok || "";
-  document.getElementById("edit_deskripsi").value = produk.deskripsi || "";
-  document.getElementById("edit_gambar").value = "";
-  document.getElementById("edit_preview").src = fotoUtama;
+        <div class="mb-3">
+          <label class="form-label">Kategori</label>
+          <input id="kategori" class="form-control">
+        </div>
 
-  document.getElementById("edit_preview").style.cursor = "pointer";
-  document.getElementById("edit_preview").onclick = function () {
-    bukaPreviewProduk(produk.id, 0);
-  };
+        <div class="mb-3">
+          <label class="form-label">Stok</label>
+          <input id="stok" type="number" class="form-control">
+        </div>
 
-  editModal.show();
-}
+        <div class="mb-3">
+          <label class="form-label">Deskripsi Produk</label>
+          <textarea id="deskripsi" rows="5" class="form-control"></textarea>
+        </div>
 
-async function simpanEditProduk() {
-  const client = window.supabaseClient;
+        <div class="mb-3">
+          <label class="form-label">Upload Banyak Gambar</label>
+<input id="gambar" type="file" accept="image/*" multiple class="form-control">
+        </div>
 
-  const id = document.getElementById("edit_id").value;
-  const nama = document.getElementById("edit_nama").value.trim();
-  const kode = document.getElementById("edit_kode").value.trim();
-  const harga = document.getElementById("edit_harga").value;
-  const kategori = document.getElementById("edit_kategori").value.trim();
-  const stok = document.getElementById("edit_stok").value;
-  const deskripsi = document.getElementById("edit_deskripsi").value.trim();
-  const files = document.getElementById("edit_gambar").files;
+      </div>
 
-  if (!nama || !kode || !harga || !kategori || !stok || !deskripsi) {
-    alert("Semua data wajib diisi.");
-    return;
-  }
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Batal
+        </button>
 
-  let updateData = {
-    nama_produk: nama,
-    kode_barang: kode,
-    harga: Number(harga),
-    kategori: kategori,
-    stok: Number(stok),
-    deskripsi: deskripsi
-  };
+        <button type="button" onclick="tambahProduk()" class="btn btn-primary">
+          Simpan Produk
+        </button>
+      </div>
 
-  if (files.length > 0) {
-    const gambarUrls = await uploadBanyakGambar(files);
+    </div>
+  </div>
+</div>
 
-    if (!gambarUrls) return;
 
-    updateData.gambar = gambarUrls;
-  }
+<!-- MODAL EDIT PRODUK -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
 
-  const { error } = await client
-    .from("products")
-    .update(updateData)
-    .eq("id", Number(id));
+      <div class="modal-header">
+        <h5 class="modal-title">Ubah Produk</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
 
-  if (error) {
-    alert("Gagal ubah produk: " + error.message);
-    return;
-  }
+      <div class="modal-body">
 
-  alert("Produk berhasil diubah.");
+        <input type="hidden" id="edit_id">
 
-  editModal.hide();
-  getProducts();
-}
+        <div class="mb-3">
+          <label class="form-label">Nama Produk</label>
+          <input id="edit_nama" class="form-control">
+        </div>
 
-function jadikanFotoUtama() {
-  if (fotoPreview.length === 0) return;
+        <div class="mb-3">
+          <label class="form-label">Kode Barang</label>
+          <input id="edit_kode" class="form-control">
+        </div>
 
-  const fotoDipilih = fotoPreview[indexPreview];
+        <div class="mb-3">
+          <label class="form-label">Harga</label>
+          <input id="edit_harga" type="number" class="form-control">
+        </div>
 
-  fotoPreview.splice(indexPreview, 1);
-  fotoPreview.unshift(fotoDipilih);
+        <div class="mb-3">
+          <label class="form-label">Kategori</label>
+          <input id="edit_kategori" class="form-control">
+        </div>
 
-  tampilkanPreview(0);
-}
+        <div class="mb-3">
+          <label class="form-label">Stok</label>
+          <input id="edit_stok" type="number" class="form-control">
+        </div>
 
-function geserUrutanFoto(arah) {
-  const indexBaru = indexPreview + arah;
+        <div class="mb-3">
+          <label class="form-label">Deskripsi Produk</label>
+          <textarea id="edit_deskripsi" rows="4" class="form-control"></textarea>
+        </div>
 
-  if (indexBaru < 0 || indexBaru >= fotoPreview.length) return;
+<div class="mb-3">
+  <label class="form-label">Ganti Banyak Gambar</label>
+  <input id="edit_gambar" type="file" accept="image/*" multiple class="form-control">
+  <small class="text-muted">Kosongkan jika tidak ingin mengganti gambar.</small>
+</div>
 
-  const sementara = fotoPreview[indexPreview];
-  fotoPreview[indexPreview] = fotoPreview[indexBaru];
-  fotoPreview[indexBaru] = sementara;
+        <div class="mb-3">
+          <label class="form-label">Preview Gambar Lama</label>
+          <br>
+          <img id="edit_preview" src="" width="160" style="border-radius:12px; object-fit:cover;">
+        </div>
 
-  tampilkanPreview(indexBaru);
-}
+      </div>
 
-async function simpanUrutanFoto() {
-  const client = window.supabaseClient;
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Batal
+        </button>
 
-  if (!produkPreviewId) {
-    alert("Produk tidak ditemukan.");
-    return;
-  }
+        <button type="button" onclick="simpanEditProduk()" class="btn btn-primary">
+          Simpan Perubahan
+        </button>
+      </div>
 
-  const { error } = await client
-    .from("products")
-    .update({
-      gambar: fotoPreview
-    })
-    .eq("id", produkPreviewId);
+    </div>
+  </div>
+</div>
 
-  if (error) {
-    alert("Gagal simpan urutan gambar: " + error.message);
-    return;
-  }
+<!-- MODAL PREVIEW GAMBAR PRODUK -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark">
 
-  alert("Urutan gambar berhasil disimpan.");
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white">Preview Gambar Produk</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
 
-  previewModal.hide();
-  getProducts();
-}
+      <div class="modal-body text-center position-relative">
 
-function ambilPathStorageDariUrl(url) {
-  if (!url) return null;
+        <button type="button" onclick="geserPreview(-1)" class="btn btn-light"
+          style="position:absolute; left:20px; top:45%; z-index:10; border-radius:50%; width:45px; height:45px; font-size:22px;">
+          ‹
+        </button>
 
-  const marker = "/produk-images/";
-  const index = url.indexOf(marker);
+        <img id="previewBesar" src=""
+          style="max-width:100%; max-height:65vh; object-fit:contain; border-radius:12px;">
 
-  if (index === -1) return null;
+        <button type="button" onclick="geserPreview(1)" class="btn btn-light"
+          style="position:absolute; right:20px; top:45%; z-index:10; border-radius:50%; width:45px; height:45px; font-size:22px;">
+          ›
+        </button>
 
-  return decodeURIComponent(url.substring(index + marker.length));
-}
+        <div id="previewCounter" class="text-white mt-3 fw-bold">1 / 1</div>
 
-async function hapusProduk(id) {
-  const client = window.supabaseClient;
+        <div class="mt-3 d-flex justify-content-center gap-2">
+          <button onclick="jadikanFotoUtama()" class="btn btn-warning">
+            Jadikan Utama
+          </button>
 
-  if (!confirm("Yakin hapus produk? Gambar di storage juga akan dihapus.")) return;
+          <button onclick="geserUrutanFoto(-1)" class="btn btn-info">
+            Geser Kiri
+          </button>
 
-  const produk = semuaProduk.find(function (item) {
-    return item.id === id;
-  });
+          <button onclick="geserUrutanFoto(1)" class="btn btn-info">
+            Geser Kanan
+          </button>
 
-  if (!produk) {
-    alert("Produk tidak ditemukan.");
-    return;
-  }
+          <button onclick="simpanUrutanFoto()" class="btn btn-success">
+            Simpan Urutan
+          </button>
+        </div>
 
-  const daftarFoto = ambilSemuaFoto(produk.gambar);
+        <div id="previewThumbs"
+          class="d-flex gap-2 mt-3 overflow-auto justify-content-center pb-2">
+        </div>
 
-  const daftarPath = daftarFoto
-    .map(function (url) {
-      return ambilPathStorageDariUrl(url);
-    })
-    .filter(function (path) {
-      return path !== null;
-    });
+      </div>
 
-  if (daftarPath.length > 0) {
-    const { error: storageError } = await client
-      .storage
-      .from("produk-images")
-      .remove(daftarPath);
+    </div>
+  </div>
+</div>
 
-    if (storageError) {
-      alert("Gagal hapus gambar storage: " + storageError.message);
-      return;
-    }
-  }
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/kelola-produk.js"></script>
 
-  const { error } = await client
-    .from("products")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    alert("Gagal hapus produk: " + error.message);
-    return;
-  }
-
-  alert("Produk dan gambar berhasil dihapus.");
-  getProducts();
-}
+</body>
+</html>
