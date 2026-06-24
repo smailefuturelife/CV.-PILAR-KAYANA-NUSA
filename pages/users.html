@@ -7,6 +7,61 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
+<style>
+body{
+  background:#f8fafc;
+}
+
+.table-responsive{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+.table{
+  min-width:1000px;
+}
+
+.table td,
+.table th{
+  vertical-align:middle;
+  white-space:nowrap;
+}
+
+@media (max-width:768px){
+
+  .container-fluid{
+    padding:12px !important;
+  }
+
+  h4{
+    font-size:20px;
+  }
+
+  .card-body{
+    padding:12px;
+  }
+
+  .table{
+    font-size:12px;
+  }
+
+  .table td,
+  .table th{
+    padding:8px;
+  }
+
+  .btn-sm{
+    font-size:11px;
+    padding:4px 8px;
+    margin-bottom:4px;
+  }
+
+  .form-control{
+    font-size:14px;
+  }
+}
+</style>
+
 <body style="background:#f8fafc;">
 
 <div class="container-fluid p-4">
@@ -54,9 +109,10 @@
   </div>
 
   <div class="card shadow-sm">
-    <div class="card-body">
+  <div class="card-body p-0">
 
-      <table class="table table-bordered">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover mb-0">
         <thead class="table-dark">
           <tr>
             <th>Nama</th>
@@ -71,10 +127,9 @@
 
         <tbody id="list"></tbody>
       </table>
-
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script src="../js/supabase.js"></script>
