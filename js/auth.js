@@ -6,46 +6,67 @@ async function login() {
 
   const supabase = window.supabaseClient;
 
-  const email = document.getElementById("email").value.trim();
+  const email = document
+    .getElementById("email")
+    .value
+    .trim();
 
-  const password = document.getElementById("password").value;
+  const password = document
+    .getElementById("password")
+    .value;
 
-  const errorEl = document.getElementById("error");
+  const errorEl =
+    document.getElementById("error");
 
-  // Reset pesan error
   errorEl.innerText = "";
 
-  // Validasi input kosong
   if (!email || !password) {
 
-    errorEl.innerText = "Isi email dan password!";
+    errorEl.innerText =
+      "Isi email dan password!";
 
     return;
+
   }
 
   try {
 
     const { data, error } =
-      await supabase.auth.signInWithPassword({
+      await supabase
 
-        email,
+      .from("users")
 
-        password
+      .select("*")
 
-      });
+      .ilike("email", email)
 
-    console.log("HASIL:", data, error);
+      .eq("password", password)
+
+      .eq("role", "admin");
 
     if (error) {
 
-      // Error login
+      errorEl.innerText =
+        "Terjadi kesalahan.";
+
+      return;
+
+    }
+
+    if (!data || data.length === 0) {
+
       errorEl.innerText =
         "Email atau password salah.";
 
       return;
+
     }
 
-    // Login berhasil
+    localStorage.setItem(
+      "adminLogin",
+      JSON.stringify(data[0])
+    );
+
     alert("Login berhasil!");
 
     window.location.href =
