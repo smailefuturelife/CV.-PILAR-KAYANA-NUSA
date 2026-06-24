@@ -215,27 +215,21 @@
     }
   }
 
-  async function cekLogin() {
-    try {
-      const supabase = window.supabaseClient;
+  function cekLogin() {
 
-      if (!supabase) {
-        console.warn("Supabase client belum ditemukan.");
-        return;
-      }
+  const admin = JSON.parse(
+    localStorage.getItem("adminLogin")
+  );
 
-      const { data, error } = await supabase.auth.getUser();
+  if (!admin) {
 
-      if (error || !data.user) {
-        window.location.href = "login.html";
-      }
-    } catch (error) {
-      console.error("Cek login error:", error);
-      window.location.href = "login.html";
-    }
+    window.location.href = "login.html";
+
+    return;
+
   }
 
-  cekLogin();
+}
 </script>
 
 </body>
