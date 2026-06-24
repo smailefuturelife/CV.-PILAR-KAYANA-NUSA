@@ -225,11 +225,21 @@ function detailOrder(id) {
         <div class="border rounded p-3 mb-2">
           <div class="row">
             <div class="col-md-3">
-              ${
-                x.products?.gambar
-                  ? `<img src="${x.products.gambar}" class="produk-img">`
-                  : `<div class="bg-light rounded p-4 text-center">No Image</div>`
-              }
+              ${(() => {
+  let gambar = null;
+
+  if (typeof x.products?.gambar === "string") {
+    gambar = x.products.gambar;
+  } else if (Array.isArray(x.products?.gambar)) {
+    gambar = x.products.gambar[0];
+  } else if (x.products?.gambar?.url) {
+    gambar = x.products.gambar.url;
+  }
+
+  return gambar
+    ? `<img src="${gambar}" class="produk-img">`
+    : `<div class="bg-light rounded p-4 text-center">No Image</div>`;
+})()}
             </div>
 
             <div class="col-md-9">
